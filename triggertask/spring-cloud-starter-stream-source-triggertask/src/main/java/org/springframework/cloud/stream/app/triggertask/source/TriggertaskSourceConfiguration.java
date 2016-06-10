@@ -20,16 +20,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.stream.annotation.EnableBinding;
-import org.springframework.cloud.stream.app.trigger.SourcePayloadProperties;
 import org.springframework.cloud.stream.app.annotation.PollableSource;
 import org.springframework.cloud.stream.app.trigger.TriggerConfiguration;
+import org.springframework.cloud.stream.app.triggertask.source.arguments.CommandLineArgumentTransformer;
+import org.springframework.cloud.stream.app.triggertask.source.arguments.PassThroughCommandLineArgumentTransformer;
 import org.springframework.cloud.stream.messaging.Source;
 import org.springframework.cloud.task.launcher.TaskLaunchRequest;
 import org.springframework.context.annotation.Import;
@@ -59,12 +59,25 @@ public class TriggertaskSourceConfiguration {
 	@Autowired
 	private TaskPayloadProperties taskPayloadProperties;
 
+	private CommandLineArgumentTransformer commandLineArgumentTransformer =
+			new PassThroughCommandLineArgumentTransformer();
+
 	@PollableSource
 	public Object triggerTaskSource() {
 
 		return new TaskLaunchRequest(taskPayloadProperties.getUri(),
-				parseParams(taskPayloadProperties.getCommandLineArgs()),
+				parseParams(
+						commandLineArgumentTransformer.transform(
+								taskPayloadProperties.getCommandLineArgs())),
 				parseProperties(taskPayloadProperties.getProperties()));
+	}
+
+	/**
+	 * @param commandLineArgumentTransformer a custom {@link CommandLineArgumentTransformer}
+	 * 		defaults to {@link PassThroughCommandLineArgumentTransformer}
+	 */
+	public void setCommandLineArgumentTransformer(CommandLineArgumentTransformer commandLineArgumentTransformer) {
+		this.commandLineArgumentTransformer = commandLineArgumentTransformer;
 	}
 
 	/**
